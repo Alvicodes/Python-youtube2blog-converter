@@ -7,6 +7,7 @@ from django.http import JsonResponse
 from django.conf import settings
 from pytube import YouTube
 from dotenv import load_dotenv
+from .models import BlogPost
 import json,os
 import assemblyai as aai
 import openai
@@ -41,14 +42,23 @@ def generate_blog(request):
         # use openai to generate blog
         blog_content = generate_blog_from_transcription(transcription)
         if not blog_content:
-           return JsonResponse({'error': "Failed to generate BLog Article"}, status=500) 
+           return JsonResponse({'error': "Failed to generate BLog Article"}, status=500)
+
         # save blog article to datase
+        new_blog_article = BlogPost.objects.create(
+            user = request.user,
+            youtube_title = title,
+            youtube_link = yt_link,
+            generated_content = blog_content,
+        )
+        new_blog_article.save()
         
         # return blog article as a response
         return JsonResponse({'content': blog_content})
         
     else: 
         return JsonResponse({'error': 'Invalid request method'}, status=405)
+
 def yt_title(link):#
     yt = YouTube(link)
     title = yt.title
@@ -84,6 +94,17 @@ def generate_blog_from_transcription(transcription):
     generated_content = response.choices[0].text.strip()
     
     return generated_content
+
+def blog_list(request):
+    blog_articles = BlogPost.objects.filter(user=request.user)
+    return render(request, 'all-blogs.html', {'blog_articles': blog_articles})
+
+def blog_details(request, pk):
+    blog_article_detail = BlogPost.objects.get(id=pk)
+    if request.user == blog_article_detail.user:
+        return render(request, 'blog-details.html', {'blog_article_detail': blog_article_detail})
+    else:
+        return redirect('/')
     
 def user_login(request):
     if request.method == 'POST':
