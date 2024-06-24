@@ -117,7 +117,7 @@ def user_login(request):
             return redirect('/')
         else:
             error_message = 'Invalid username or password'
-            return render(request, 'login.html', {error_message: error_message})    
+            return render(request, 'login.html', {'error_message': error_message})    
 
     return render(request, 'login.html')
 
